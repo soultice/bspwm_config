@@ -1,0 +1,123 @@
+#!/usr/bin/python
+# -*  coding: utf-8 -*-
+# fa-drupal [&#xf1a9;]
+from __future__ import unicode_literals
+import psutil
+from time import sleep
+from time import gmtime
+from time import strftime
+import dbus
+import datetime
+BASE = '#008000' #Green
+IRREG = '#FFFF00' #Yellow
+CRIT = '#FF0000' #RED
+# 
+WIFI = '\uf1eb'
+#
+CPU_ICON = '\uf085'
+#
+MEM_ICON = '\uf2db'
+#
+BAT_ICON_FULL = '\uf240'
+#
+BAT_ICON_HALF = '\uf242'
+#
+BAT_ICON_QUART = '\uf243'
+#
+BAT_ICON_ALERT = '\uf12a'
+#
+BAT_PLUGGED_ICON = '\uf1e6'
+#
+POWER = '\uf0e7'
+#
+HOURS = '\uf250'
+#
+TEMP_ICON = '\uf2cb'
+#
+TEMP_ICON_MED = '\uf2c8'
+#
+TEMP_ICON_ALERT = '\uf06d'
+# 
+CLOCK = '\uf017'
+#
+CAL = '\uf073'
+
+def get_formatted_stats(interval=1000):
+
+    cpustring = str()
+    cpus = psutil.cpu_percent(interval=1, percpu=True)
+
+    for cpu in cpus:
+        color = None
+        if cpu <= 50:
+            color = BASE
+        if cpu > 50 and cpu < 80:
+            color = IRREG
+        elif cpu >= 80:
+            color = CRIT
+        cpustring += "{} %{{F{} }} {} %{{F-}}".format(CPU_ICON, color, cpu)
+
+    memstring = str()
+    mem = psutil.virtual_memory()[2]
+    if mem < 50:
+        color = BASE
+    elif mem > 50 and mem <= 80:
+        color = IRREG
+    elif mem > 80:
+        color = CRIT
+    memstring += " {} %{{F{} }} {} %{{F-}}".format(MEM_ICON, color, mem)
+
+    batstring = str()
+    bus = dbus.SystemBus()
+    dev = bus.get_object('org.freedesktop.UPower',
+                         '/org/freedesktop/UPower/devices/battery_BAT0')
+    iface = dbus.Interface(dev, 'org.freedesktop.DBus.Properties')
+    rate = iface.GetAll('org.freedesktop.UPower.Device')['EnergyRate']
+    rate = float("{0:.2f}".format(rate))
+    bat_perc, remaining,  plugged = psutil.sensors_battery()
+    bat_perc = float("{0:.2f}".format(bat_perc))
+    remaining = strftime('%H:%M', gmtime(remaining))
+    if plugged:
+        icon = BAT_PLUGGED_ICON
+        batstring += " {} %{{F{} }} {} %{{F-}} {} {}".format(
+                icon, BASE, bat_perc, POWER, rate )
+    else:
+        if bat_perc > 50:
+            icon = BAT_ICON_FULL
+            color = BASE
+        elif bat_perc <= 50 and bat_perc > 30:
+            icon = BAT_ICON_HALF
+            color = IRREG
+        elif bat_perc <= 30 and bat_perc > 5:
+            icon = BAT_ICON_HALF
+            color = CRIT
+        elif bat_perc <= 5:
+            icon = "%{{F{}}}".format(CRIT) + BAT_ICON_ALERT + "%{F-}"
+            color = CRIT
+        batstring += "  {} %{{F{} }} {} %{{F-}} {} {} {} {}".format(
+                icon, color, bat_perc, HOURS, remaining, POWER, rate)
+
+    tempstring = str()
+    _, temp, high, crit = psutil.sensors_temperatures()['acpitz'][0]
+#    temp = 200
+    if temp < high:
+        icon = TEMP_ICON
+        color = BASE
+    elif temp > high and temp <= crit*0.9:
+        icon = TEMP_ICON_MED
+        color = IRREG
+    elif temp > crit*0.9:
+        icon = "%{{F{}}}".format(CRIT) + TEMP_ICON_ALERT + "%{F-}"
+        color = CRIT
+    tempstring += " {} %{{F{} }} {} %{{F-}}".format(icon, color, temp)
+
+    dt = datetime.datetime.now()
+    timestring = " {} {}:{:02d}:{} {} {}:{:02d}:{:02d}".format(CAL, dt.year, dt.month, dt.day
+            , CLOCK, dt.hour, dt.minute, dt.second)
+
+    return unicode('A %{r}' + cpustring + memstring + batstring + tempstring + timestring).encode('utf-8')
+
+if __name__ == '__main__':
+    print(get_formatted_stats())
+
+

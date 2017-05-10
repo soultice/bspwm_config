@@ -1,0 +1,6 @@
+#!/bin/sh
+
+while true; do
+    $(sys_if > $PANEL_FIFO)
+    sleep 0.9
+done
