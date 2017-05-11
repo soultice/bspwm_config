@@ -3,11 +3,12 @@
 My config files for bspwm, sxhkd and lemonbar. It looks like this:
 
 ![screenshot](https://raw.githubusercontent.com/soultice/bspwm_config/master/screenshot.jpeg)
-
+alt text
 ## Requirements:
 
 Fontawesome installed
 Compton or other compositor installed
+lemonbar
 Bspwm/Sxhdk
 
 ## Installation:
